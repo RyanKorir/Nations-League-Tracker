@@ -1,5 +1,5 @@
 import {NextResponse} from "next/server";
-import {getHighlights} from "@/lib/highlights";
+import {getHighlights,diag} from "@/lib/highlights";
 export const dynamic="force-dynamic";
 // Returns only highlights verified as playable in the visitor's country (Vercel provides it; ?country=XX overrides for testing).
 export async function GET(req:Request){
@@ -7,6 +7,6 @@ export async function GET(req:Request){
   try{
     const all=await getHighlights();
     const videos=all.filter(v=>v.countries===null||(!!country&&!!v.countries?.includes(country))).map(({countries,chk,...v})=>v);
-    return NextResponse.json({country,videos,checked:all.length},{headers:{"Cache-Control":"private, max-age=120"}});
+    return NextResponse.json({country,videos,checked:all.length,diag},{headers:{"Cache-Control":"private, max-age=120"}});
   }catch{return NextResponse.json({country,videos:[],checked:0})}
 }
