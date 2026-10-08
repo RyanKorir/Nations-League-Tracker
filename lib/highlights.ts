@@ -23,7 +23,9 @@ export async function getHighlights():Promise<Vid[]>{
   if(Date.now()-at>300000){
     at=Date.now();
     await Promise.allSettled(FEEDS.map(async f=>{
-      const r=await fetch(`https://www.youtube.com/feeds/videos.xml?channel_id=${f.id}`,{signal:AbortSignal.timeout(8000),cache:"no-store"});
+      const url=`https://www.youtube.com/feeds/videos.xml?channel_id=${f.id}`,o={signal:AbortSignal.timeout(8000),cache:"no-store" as const};
+      let r=await fetch(url,o);
+      if(!r.ok)r=await fetch(url,{...o,signal:AbortSignal.timeout(8000)}); // YouTube's feed sometimes returns a transient 500
       diag.feed=`HTTP ${r.status}`;
       if(!r.ok)throw new Error("HTTP "+r.status);
       const xml=await r.text();diag.entries=(xml.match(/<entry>/g)||[]).length;diag.nl=0;diag.err=undefined;
@@ -37,7 +39,7 @@ export async function getHighlights():Promise<Vid[]>{
         diag.nl=(diag.nl??0)+1;
         if(!known.has(m[1]))known.set(m[1],{id:m[1],date:m[3],home,away,title,src:f.name});
       }
-    }).map(p=>p.catch((e:Error)=>{diag.err=String(e.message)})));
+    }).map(p=>p.catch((e:Error)=>{diag.err=String(e.message);at=Date.now()-240000})));
     await Promise.allSettled([...known.values()].map(avail));
   }
   return [...known.values()].sort((a,b)=>b.date.localeCompare(a.date));
